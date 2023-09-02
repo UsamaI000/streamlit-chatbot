@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import json
 from streamlit_chat import message
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
@@ -59,7 +60,8 @@ def main():
         if i % 2 == 0:
             message(msg.content, is_user=True, key=str(i)+"_user")
         else: message(msg.content, is_user=False, key=str(i)+"_ai")
-
+    
+    
 
 if __name__ == "__main__":
     main()
