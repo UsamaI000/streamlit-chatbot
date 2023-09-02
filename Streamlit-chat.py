@@ -1,8 +1,12 @@
 import streamlit as st
 import os
-import json
 import re
 import pandas as pd
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+import time
 from streamlit_chat import message
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
@@ -29,20 +33,17 @@ def init():
 def main():
     init()
 
-    chat = ChatOpenAI(temperature = 0)
+    chat = ChatOpenAI(temperature = 0, model_name="gpt-3.5-turbo")
     
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            SystemMessage(content="""The following is a conversation with an AI assistant. If the user wants they can talk about anything as soon as the assistant finishes collecting the following fields from the user:
-                The user's name
-                The user's email
-                The user's departure location
-                The user's destination location
-                The user's dates of travel
-                The user's budget for the trip
-
-                After collecting all these fields the AI should thank the human for their time and tell them they'll recieve email. 
-                It should then write EODC (for end of data collection) and on a new line output all these fields as JSON. {"user_name": "<user_name>", "user_email": "<user_email>", "departure_location": <departure_location>, "destination_location": "<destination_location>", "departure_date": "departure_date", "return_date":"return_date", "budget": "<budget>"}
+            SystemMessage(content="""Act as flight booking agent and collect following fields from the user:
+                Step 1: name & email
+                Step 2: departure location
+                Step 3: destination location
+                Step 4: dates of travel. 
+                After all give random price, time and ask confirmation.
+                Finally, Write EODC and on a new line output all these fields as JSON. {"name": "<name>", "email": "<email>", "origin": <origin>, "destination": "<destination>", "departure": "<departure>", "return":"<return>", "price": "<price>"}
                 AI: Hi! I can help you book a flight. Can I start by getting your name?
             """),
         ]
@@ -56,8 +57,8 @@ def main():
         st.session_state.messages.append(HumanMessage(content=user_input))
         with st.spinner("Writing.."):
             response = chat(st.session_state.messages)
-            if "EODC" in response.content:
-                response.content = response.content.split("EODC")[0].strip()
+            # if "EODC" in response.content:
+            #     response.content = response.content.split("EODC")[0].strip()
         st.session_state.messages.append(AIMessage(content=response.content))
 
     messages = st.session_state.get("messages", [])
@@ -78,8 +79,32 @@ def main():
 
         # Create a dictionary from the matches
         info_dict = {key: value for key, value in matches}
-    
-    print(info_dict)
+        df = pd.DataFrame(info_dict, index=[0])
+        df.to_csv("details.csv")
+        
+def send_email(info_dict):
+    # Email configurations
+    sender_email = "@gmail.com"
+    receiver_email = info_dict['email']
+    password = ""
+
+    # Email content
+    subject = "Confirmation - Booking"
+    message = f"Your Flight has been booked with following details. \nName: {info_dict['name']}\nEmail: {info_dict['email']}\nDestination: {info_dict['destination']}\nDeparture: {info_dict['departure']}\nPrice: {info_dict['price']}"
+
+    # Construct the email
+    email = MIMEMultipart()
+    email['From'] = sender_email
+    email['To'] = receiver_email
+    email['Subject'] = subject
+
+    email.attach(MIMEText(message, 'plain'))
+
+    # Send the email
+    with smtplib.SMTP('smtp.gmail.com', 587) as server:
+        server.starttls()
+        server.login(sender_email, password)
+        server.send_message(email)
 
 if __name__ == "__main__":
     main()
