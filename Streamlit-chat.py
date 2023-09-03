@@ -16,14 +16,22 @@ from langchain.schema import (
     AIMessage
 )
 
-def init():
-    load_dotenv()
-    #Load API key from .env
-    if os.getenv("OPENAI_API_KEY") is None or os.getenv("OPENAI_API_KEY") == "":
-        print("Open AI key is not set")
-        exit(1)
+def init(env='prod'):
+    if env == "prod":
+        #Load API key from .env
+        if st.secrets["OPENAI_API_KEY"] is None or st.secrets["OPENAI_API_KEY"] == "":
+            print("Open AI key is not set")
+            exit(1)
+        else:
+            print("Open AI key is set")
     else:
-        print("Open AI key is set")
+        load_dotenv()
+        #Load API key from .env
+        if os.getenv("OPENAI_API_KEY") is None or os.getenv("OPENAI_API_KEY") == "":
+            print("Open AI key is not set")
+            exit(1)
+        else:
+            print("Open AI key is set")
 
     st.set_page_config(
         page_title = "Flight Booking Assistant"
