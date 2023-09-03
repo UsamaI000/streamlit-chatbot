@@ -39,8 +39,9 @@ def init(env='prod'):
     
 
 def main():
-    init()
-
+    try: init()
+    except: init("local")
+    
     chat = ChatOpenAI(temperature = 0, model_name="gpt-3.5-turbo")
     
     if "messages" not in st.session_state:
